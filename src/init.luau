@@ -1,6 +1,8 @@
 local Loader = {}
 Loader.__index = Loader
 
+local _instance
+
 export type Module = {
 	Init: (self: Module, modules: { [string]: any }) -> ()?,
 	Start: (self: Module) -> ()?,
@@ -10,41 +12,66 @@ export type Module = {
 export type LoaderType = {
 	Modules: { [string]: Module },
 	ModuleList: { { Name: string, Ref: Module } },
+	Character: Model?,
 
-	Load: (self: LoaderType, folder: Instance) -> (),
 	InitAll: (self: LoaderType) -> (),
 	StartAll: (self: LoaderType) -> (),
-	Get: (self: LoaderType, name: string) -> Module,
+	Require: (self: LoaderType, name: string) -> Module?,
+	SetCharacter: (self: LoaderType, character: Model?) -> (),
 }
 
 local function timeMs()
 	return os.clock() * 1000
 end
 
---/ Constructor
-function Loader.new(): LoaderType
+function Loader.Start(folders: Instance | { Instance }): LoaderType
+	if _instance then
+		return _instance
+	end
+
 	local self = setmetatable({}, Loader)
 
 	self.Modules = {}
 	self.ModuleList = {}
+	self.Character = nil
+
+	_instance = self
+
+	local folderList: { Instance }
+
+	if typeof(folders) == "Instance" then
+		folderList = { folders }
+	else
+		folderList = folders
+	end
+
+	for _, folder in ipairs(folderList) do
+		for _, obj in ipairs(folder:GetChildren()) do
+			if obj:IsA("ModuleScript") then
+				local ref = require(obj)
+
+				self.Modules[obj.Name] = ref
+				self.ModuleList[#self.ModuleList + 1] = {
+					Name = obj.Name,
+					Ref = ref,
+				}
+			end
+		end
+	end
+
+	self:InitAll()
+	self:StartAll()
 
 	return self
 end
 
---/ Methods
-function Loader:Load(folder: Instance)
-	for _, obj in ipairs(folder:GetChildren()) do
-		if obj:IsA("ModuleScript") then
-			local module = require(obj)
+function Loader.Instance(): LoaderType
+	assert(_instance, "Loader has not been started yet. Call Loader.Start() first.")
+	return _instance
+end
 
-			self.Modules[obj.Name] = module
-
-			table.insert(self.ModuleList, {
-				Name = obj.Name,
-				Ref = module,
-			})
-		end
-	end
+function Loader:SetCharacter(character: Model?)
+	self.Character = character
 end
 
 function Loader:InitAll()
@@ -86,7 +113,7 @@ function Loader:StartAll()
 	end
 end
 
-function Loader:Get(name: string)
+function Loader:Require(name: string): Module?
 	return self.Modules[name]
 end
 
