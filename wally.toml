@@ -2,14 +2,12 @@
 name = "zserxue/loader"
 description = "Simple Modular Loader"
 authors = ["zserxue"]
-version = "0.1.9"
+version = "0.2.3"
 
 registry = "https://github.com/UpliftGames/wally-index"
 realm = "shared"
 
-exclude = ["**"]
-include = ["src", "src/*", "default.project.json", "wally.lock", "wally.toml"]
+include = ["src/**",  "wally.toml",]
 
 [dependencies]
 Signal = "sleitnick/signal@2.0.3"
-QuickNet = "breadboardengineer1234/quicknet@0.3.0"

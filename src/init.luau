@@ -1,106 +1,22 @@
---!strict
-
---[[
-	Server:
-
-	local Loader = require(ReplicatedStorage.Packages.YourPackage)
-	local NetworkDefinitions = require(ReplicatedStorage.NetworkDefinitions)
-
-	local App = Loader.Start({
-		ServerScriptService.Modules
-	}, NetworkDefinitions)
-
-
-	Client:
-
-	local Loader = require(ReplicatedStorage.Packages.YourPackage)
-	local NetworkDefinitions = require(ReplicatedStorage.NetworkDefinitions)
-
-	local App = Loader.Start({
-		ReplicatedStorage.ClientModules
-	}, NetworkDefinitions)
-
-
-	Modules:
-
-	local Module = {}
-
-	function Module:Init(modules, loader)
-		self.Network = loader.Network
-	end
-
-	function Module:Start()
-		self.Network:Fire("PlayerReady")
-	end
-
-	return Module
-
-
-	NetworkDefinitions:
-
-	local QuickNet = require(Packages.QuickNet)
-	local Data = QuickNet.Data
-
-	return {
-		PlayerReady = {},
-
-		Message = {
-			Data.String
-		},
-
-		Damage = {
-			Data.UInt16,
-			Data.Vector3
-		}
-	}
-]]
-
+--!nocheck
 local Packages = script.Parent
 
 local Signal = require(Packages.Signal)
-local QuickNet = require(Packages.QuickNet)
 
 local SignalRegistry = require(script.SignalRegistry)
 local Network = require(script.Network)
-
-type NetworkDefinitions = {
-	[string]: { any },
-}
-
-type Module = {
-	Priority: number?,
-	Init: ((modules: { [string]: any }, loader: Loader) -> ())?,
-	Start: (() -> ())?,
-}
-
-export type Loader = {
-	Modules: { [string]: any },
-	ModuleList: { ModuleEntry },
-	Signals: any,
-	Network: Network.Network,
-
-	GetModule: (self: Loader, name: string) -> any,
-	GetSignal: (self: Loader, name: string) -> any,
-
-	InitAll: (self: Loader) -> (),
-	StartAll: (self: Loader) -> (),
-}
-
-type ModuleEntry = {
-	Name: string,
-	Ref: Module,
-}
+local Types = require(script.Types)
 
 local Loader = {}
 Loader.__index = Loader
 
-local _instance: Loader? = nil
+local _instance: Types.Loader? = nil
 
 local function timeMs()
 	return os.clock() * 1000
 end
 
-function Loader.Start(folders: Instance | { Instance }, networkDefinitions: NetworkDefinitions): Loader
+function Loader.Start(folders: Instance | { Instance }, networkDefinitions: Types.NetworkDefinitions): Loader
 	if _instance then
 		return _instance
 	end
@@ -112,7 +28,7 @@ function Loader.Start(folders: Instance | { Instance }, networkDefinitions: Netw
 
 	self.Signals = SignalRegistry.new(Signal)
 
-	self.Network = Network.new(QuickNet, networkDefinitions, game:GetService("RunService"):IsServer())
+	self.Network = Network.new(networkDefinitions, game:GetService("RunService"):IsServer())
 
 	_instance = self
 
@@ -145,7 +61,7 @@ function Loader.Start(folders: Instance | { Instance }, networkDefinitions: Netw
 	return self
 end
 
-function Loader.Instance(): Loader
+function Loader.Instance(): Types.Loader
 	assert(_instance, "Loader has not started")
 
 	return _instance

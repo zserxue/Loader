@@ -3,8 +3,8 @@
 registry = "test"
 
 [[package]]
-name = "breadboardengineer1234/quicknet"
-version = "0.3.0"
+name = "elitriare/bytenet-max"
+version = "1.0.0"
 dependencies = []
 
 [[package]]
@@ -14,5 +14,5 @@ dependencies = []
 
 [[package]]
 name = "zserxue/loader"
-version = "0.1.8"
-dependencies = [["QuickNet", "breadboardengineer1234/quicknet@0.3.0"], ["Signal", "sleitnick/signal@2.0.3"]]
+version = "0.2.1"
+dependencies = [["ByteNet", "elitriare/bytenet-max@1.0.0"], ["Signal", "sleitnick/signal@2.0.3"]]
