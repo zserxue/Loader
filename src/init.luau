@@ -1,35 +1,122 @@
-local Signal = require(script.Parent.Parent.Packages.Signal)
-local BridgeNet2 = require(script.Parent.Parent.Packages.BridgeNet2)
+--!strict
+
+--[[
+	Server:
+
+	local Loader = require(ReplicatedStorage.Packages.YourPackage)
+	local NetworkDefinitions = require(ReplicatedStorage.NetworkDefinitions)
+
+	local App = Loader.Start({
+		ServerScriptService.Modules
+	}, NetworkDefinitions)
+
+
+	Client:
+
+	local Loader = require(ReplicatedStorage.Packages.YourPackage)
+	local NetworkDefinitions = require(ReplicatedStorage.NetworkDefinitions)
+
+	local App = Loader.Start({
+		ReplicatedStorage.ClientModules
+	}, NetworkDefinitions)
+
+
+	Modules:
+
+	local Module = {}
+
+	function Module:Init(modules, loader)
+		self.Network = loader.Network
+	end
+
+	function Module:Start()
+		self.Network:Fire("PlayerReady")
+	end
+
+	return Module
+
+
+	NetworkDefinitions:
+
+	local QuickNet = require(Packages.QuickNet)
+	local Data = QuickNet.Data
+
+	return {
+		PlayerReady = {},
+
+		Message = {
+			Data.String
+		},
+
+		Damage = {
+			Data.UInt16,
+			Data.Vector3
+		}
+	}
+]]
+
+local Packages = script.Parent
+
+local Signal = require(Packages.Signal)
+local QuickNet = require(Packages.QuickNet)
 
 local SignalRegistry = require(script.SignalRegistry)
 local Network = require(script.Network)
 
+type NetworkDefinitions = {
+	[string]: { any },
+}
+
+type Module = {
+	Priority: number?,
+	Init: ((modules: { [string]: any }, loader: Loader) -> ())?,
+	Start: (() -> ())?,
+}
+
+export type Loader = {
+	Modules: { [string]: any },
+	ModuleList: { ModuleEntry },
+	Signals: any,
+	Network: Network.Network,
+
+	GetModule: (self: Loader, name: string) -> any,
+	GetSignal: (self: Loader, name: string) -> any,
+
+	InitAll: (self: Loader) -> (),
+	StartAll: (self: Loader) -> (),
+}
+
+type ModuleEntry = {
+	Name: string,
+	Ref: Module,
+}
+
 local Loader = {}
 Loader.__index = Loader
 
-local _instance
+local _instance: Loader? = nil
 
 local function timeMs()
 	return os.clock() * 1000
 end
 
-function Loader.Start(folders: Instance | { Instance })
+function Loader.Start(folders: Instance | { Instance }, networkDefinitions: NetworkDefinitions): Loader
 	if _instance then
 		return _instance
 	end
 
-	local self = setmetatable({}, Loader)
+	local self = setmetatable({}, Loader) :: any
 
 	self.Modules = {}
 	self.ModuleList = {}
 
 	self.Signals = SignalRegistry.new(Signal)
 
-	self.Network = Network.new(BridgeNet2, game:GetService("RunService"):IsServer())
+	self.Network = Network.new(QuickNet, networkDefinitions, game:GetService("RunService"):IsServer())
 
 	_instance = self
 
-	local folderList
+	local folderList: { Instance }
 
 	if typeof(folders) == "Instance" then
 		folderList = { folders }
@@ -37,8 +124,8 @@ function Loader.Start(folders: Instance | { Instance })
 		folderList = folders
 	end
 
-	for _, folder in ipairs(folderList) do
-		for _, obj in ipairs(folder:GetChildren()) do
+	for _, folder in folderList do
+		for _, obj in folder:GetChildren() do
 			if obj:IsA("ModuleScript") then
 				local module = require(obj)
 
@@ -58,17 +145,17 @@ function Loader.Start(folders: Instance | { Instance })
 	return self
 end
 
-function Loader.Instance()
+function Loader.Instance(): Loader
 	assert(_instance, "Loader has not started")
 
 	return _instance
 end
 
-function Loader:GetModule(name)
+function Loader:GetModule(name: string)
 	return self.Modules[name]
 end
 
-function Loader:GetSignal(name)
+function Loader:GetSignal(name: string)
 	return self.Signals:Get(name)
 end
 
@@ -77,10 +164,10 @@ function Loader:InitAll()
 		return (a.Ref.Priority or 0) > (b.Ref.Priority or 0)
 	end)
 
-	for _, entry in ipairs(self.ModuleList) do
+	for _, entry in self.ModuleList do
 		local module = entry.Ref
 
-		if type(module.Init) == "function" then
+		if module.Init then
 			local start = timeMs()
 
 			local success, err = pcall(function()
@@ -99,10 +186,10 @@ function Loader:InitAll()
 end
 
 function Loader:StartAll()
-	for _, entry in ipairs(self.ModuleList) do
+	for _, entry in self.ModuleList do
 		local module = entry.Ref
 
-		if type(module.Start) == "function" then
+		if module.Start then
 			task.spawn(function()
 				local success, err = pcall(function()
 					module:Start()
