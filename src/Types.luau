@@ -1,11 +1,10 @@
-export type NetworkDefinitions = {
-	[string]: { any },
-}
+--!strict
 
 export type Module = {
 	Priority: number?,
-	Init: ((modules: { [string]: any }, loader: Loader) -> ())?,
-	Start: (() -> ())?,
+
+	Init: ((self: Module, modules: { [string]: Module }, loader: Loader) -> ())?,
+	Start: ((self: Module) -> ())?,
 }
 
 export type ModuleEntry = {
@@ -13,29 +12,33 @@ export type ModuleEntry = {
 	Ref: Module,
 }
 
+export type LoaderState = {
+	Character: Model?,
+	Humanoid: Humanoid?,
+
+	[string]: any,
+}
+
 export type Loader = {
 	Modules: { [string]: Module },
-	ModuleList: { { Name: string, Ref: Module } },
+	ModuleList: { ModuleEntry },
 
-	Network: any,
+	State: LoaderState,
+
+	Signals: any,
 
 	GetModule: (self: Loader, name: string) -> Module?,
 	GetSignal: (self: Loader, name: string) -> any,
 
+	SetState: (self: Loader, key: string, value: any) -> (),
+	GetState: (self: Loader, key: string) -> any,
+
+	SetCharacter: (self: Loader, character: Model?) -> (),
+	GetCharacter: (self: Loader) -> Model?,
+	GetHumanoid: (self: Loader) -> Humanoid?,
+
 	InitAll: (self: Loader) -> (),
 	StartAll: (self: Loader) -> (),
-}
-
-export type Network = {
-	IsServer: boolean,
-	Events: { [string]: any },
-
-	Get: (self: Network, name: string) -> any,
-	On: (self: Network, name: string, callback: (...any) -> ()) -> any,
-
-	Fire: (self: Network, name: string, ...any) -> (),
-	FireClient: (self: Network, player: Player, name: string, ...any) -> (),
-	FireAll: (self: Network, name: string, ...any) -> (),
 }
 
 return {}

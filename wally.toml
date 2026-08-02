@@ -2,7 +2,7 @@
 name = "zserxue/loader"
 description = "Simple Modular Loader"
 authors = ["zserxue"]
-version = "0.2.3"
+version = "0.4.1"
 
 registry = "https://github.com/UpliftGames/wally-index"
 realm = "shared"
